@@ -1,28 +1,18 @@
 :root {
   font: 16px / 1 sans-serif;
+  --dark-primary-color: #512da8;
+  --main-accent-color: #ffc107;
+  --main-text-color: #212121;
 }
 
 html {
   height: 100%;
 }
 
-body {
-  margin: 0;
-  min-height: 100%;
-}
-
-html {
-  height: 100%;
-}
 body {
   margin: 0;
   min-height: 100%;
   font: 16px / 1 sans-serif;
-}
-:root {
-  --dark-primary-color: #512da8;
-  --main-accent-color: #ffc107;
-  --main-text-color: #212121;
 }
 
 html.fontawesome-i2svg-active.fontawesome-i2svg-complete {
@@ -37,7 +27,8 @@ html.fontawesome-i2svg-active.fontawesome-i2svg-complete {
   background: #d1c4e9;
 }
 .textPrimaryColor {
-  color: #fff;
+  color: white;
+  /* change back to white */
 }
 .accentColor {
   background: var(--main-accent-color);
@@ -65,8 +56,10 @@ nav.menu {
 .logoTitle {
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   padding: 0.5rem;
+  background: var(--dark-primary-color);
+  border: 5px solid blue;
 }
 .logoTitle a {
   text-decoration: none;
@@ -74,26 +67,35 @@ nav.menu {
 nav.subMenu {
   display: flex;
   justify-content: flex-end;
+  border: 5px solid red;
 }
 nav.subMenu a {
   padding: 1.25rem;
+  background: var(--dark-primary-color);
+  /* margin-top: 1rem; */
 }
 nav.subMenu a:hover {
   background-color: var(--main-accent-color);
   color: var(--main-text-color);
 }
 .heroImage {
+  display: flex;
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  display: flex;
   justify-content: center;
   align-items: center;
+  height: 400px;
+  width: auto;
+  margin-top: -1rem;
+  overflow: hidden;
 }
+
 .heroImage h1 {
   font-size: 2rem;
-  margin-top: 10rem;
-  margin-bottom: 10rem;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 .imageAttribution {
   width: 100%;
