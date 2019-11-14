@@ -1,7 +1,19 @@
-const main = () => {
-  if (document.querySelector('h1.hello-world')) {
-    document.querySelector('h1.hello-world').textContent = 'Hello, World!'
-  }
+const qs = e => document.querySelector(e)
+
+const apiUrl = "https://sdg-astro-api.herokuapp.com/api/Nasa/apod"
+const upcomingApiUrl =
+  "https://sdg-astro-api.herokuapp.com/api/SpaceX/launches/upcoming"
+
+const getApiData = async () => {
+  const resp = await fetch(apiUrl)
+  const apiData = await resp.json()
+  qs(".copyright").textContent =
+    "copyright: " + apiData.copyright + " | title: " + apiData.title
+  qs(".heroImage").src = apiData.url
 }
 
-document.addEventListener('DOMContentLoaded', main)
+const main = () => {
+  getApiData()
+}
+
+document.addEventListener("DOMContentLoaded", main)
