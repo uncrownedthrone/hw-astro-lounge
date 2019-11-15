@@ -24,7 +24,7 @@ const getHeroImage = async () => {
     "copyright: " + json.copyright + " | title: " + json.title
 }
 
-const getUpcomingData = () => {
+const getUpcomingData = async () => {
   const response = await fetch(upcomingApiUrl)
   const json = await response.json()
   console.log(json)
