@@ -1,33 +1,53 @@
 // DONE responsive
 // DONE pull hero image and image details
+// DONE pull upcoming data from api
 
-// TODO pull upcoming data from api
+// TODO display upcoming data in DOM
+// TODO clicking next goes to next mission
+// TODO clicking previous goes to previous mission
 // TODO countdown timer to 0 for next astronomical event
 // TODO carousel should change every 10 seconds
 
 const qs = e => document.querySelector(e)
 
-const apiUrl = "https://sdg-astro-api.herokuapp.com/api/Nasa/apod"
+const apiUrl = 'https://sdg-astro-api.herokuapp.com/api/Nasa/apod'
 const upcomingApiUrl =
-  "https://sdg-astro-api.herokuapp.com/api/SpaceX/launches/upcoming"
-
-const start = () => {
-  getHeroImage()
-  getUpcomingData()
-}
+  'https://sdg-astro-api.herokuapp.com/api/SpaceX/launches/upcoming'
 
 const getHeroImage = async () => {
   const response = await fetch(apiUrl)
   const json = await response.json()
-  qs(".heroImage").style.backgroundImage = `url(${json.hdUrl})`
-  qs(".copyright").textContent =
-    "copyright: " + json.copyright + " | title: " + json.title
+  qs('.daily-picture').style.backgroundImage = `url(${json.hdUrl})`
+  qs('.copyright').textContent =
+    'copyright: ' + json.copyright + ' | title: ' + json.title
 }
 
 const getUpcomingData = async () => {
   const response = await fetch(upcomingApiUrl)
   const json = await response.json()
   console.log(json)
+  qs('.title-of-launch').textContent = json[0].mission_name
+}
+// index of upcoming launch will change so that needs to be a function that counts towards the full index of launches
+
+// const information = {
+//   misson_name: rocketInfo[i].mission_name,
+//   details: rocketInfo[i].details,
+//   launch_date_unix: rocketInfo[i].launch_date_unix,
+//   launch_site: rocketInfo[i].launch_site.site_name_long
+//   }
+//   missionData.push(information)
+//   i++;
+
+const previousMission = () => {}
+
+const nextMission = () => {}
+
+const start = () => {
+  getHeroImage()
+  getUpcomingData()
 }
 
-document.addEventListener("DOMContentLoaded", start)
+document.addEventListener('DOMContentLoaded', start)
+qs('.leftArrow').addEventListener('click', previousMission)
+qs('.rightArrow').addEventListener('click', nextMission)
