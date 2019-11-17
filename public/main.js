@@ -8,6 +8,14 @@
 // TODO countdown timer to 0 for next astronomical event
 // TODO carousel should change every 10 seconds
 
+let rocketInfo
+const missionData = []
+let interval
+let interval2
+let i = 0
+const y = 0
+const x = 0
+
 const qs = e => document.querySelector(e)
 
 const apiUrl = 'https://sdg-astro-api.herokuapp.com/api/Nasa/apod'
@@ -37,7 +45,16 @@ const getUpcomingData = async () => {
   qs('.launch-location').textContent = json[0].launch_site.site_name_long
   qs('.launch-timer').textContent = json[0].launch_date_unix
 }
-// index of upcoming launch will change so that needs to be a function that counts towards the full index of launches
+
+const advanceCard = () => {
+  interval2 = setTimeout(displayNextMissionCycling, 10000)
+}
+
+const displayNextMissionCycling = () => {
+  rightButton()
+  interval2 = null
+  advanceCard()
+}
 
 // const information = {
 //   misson_name: rocketInfo[i].mission_name,
@@ -48,9 +65,48 @@ const getUpcomingData = async () => {
 //   missionData.push(information)
 //   i++;
 
-const previousMission = () => {}
+const beginCountDown = () => {
+  const unixConversion = rocketInfo[i].launch_date_unix * 1000
+  const now = new Date().getTime()
+  const t = unixConversion - now
+  const days = Math.floor(t / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((t % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((t % (1000 * 60 * 60)) / (1000 * 60))
+  const seconds = Math.floor((t % (1000 * 60)) / 1000)
+  if (days <= 0 && hours <= 0 && minutes <= 0 && seconds <= 0) {
+    qs('.days').textContent = 'Launched.'
+    qs('.group').classList.add('hide')
+  } else {
+    qs('.group').classList.remove('hide')
+    qs('.days').textContent = days
+    qs('.hours').textContent = hours
+    qs('.minutes').textContent = minutes
+    qs('.seconds').textContent = seconds
+  }
+}
 
-const nextMission = () => {}
+const leftButton = () => {
+  if (i === 0) {
+    i = rocketInfo.length - 1
+    displayRocketInfo()
+  }
+}
+
+const rightButton = () => {
+  i = (i + 1) % rocketInfo.length
+  displayRocketInfo()
+}
+
+const displayRocketInfo = () => {
+  qs('.title').textContent = rocketInfo[i].mission_name
+
+  if (rocketInfo[i].details == null) {
+    qs('.details').textContent = 'No description available yet.'
+  } else {
+    qs('.details').textContent = rocketInfo[i].details
+  }
+  qs('.map').textContent = rocketInfo[i].launch_site.site_name_long
+}
 
 const start = () => {
   getHeroImage()
@@ -58,5 +114,5 @@ const start = () => {
 }
 
 document.addEventListener('DOMContentLoaded', start)
-qs('.leftArrow').addEventListener('click', previousMission)
-qs('.rightArrow').addEventListener('click', nextMission)
+qs('.leftArrow').addEventListener('click', leftButton)
+qs('.rightArrow').addEventListener('click', rightButton)
