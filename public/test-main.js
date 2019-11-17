@@ -1,323 +1,226 @@
-function _objectSpread(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i] != null ? arguments[i] : {}
-    var ownKeys = Object.keys(source)
-    if (typeof Object.getOwnPropertySymbols === "function") {
-      ownKeys = ownKeys.concat(
-        Object.getOwnPropertySymbols(source).filter(function(sym) {
-          return Object.getOwnPropertyDescriptor(source, sym).enumerable
-        })
-      )
-    }
-    ownKeys.forEach(function(key) {
-      _defineProperty(target, key, source[key])
-    })
-  }
-  return target
+const apodApiURL = 'https://sdg-astro-api.herokuapp.com/api/Nasa/apod'
+const upcomingApiURL =
+  'https://sdg-astro-api.herokuapp.com/api/SpaceX/launches/upcoming'
+let upcomingJSON
+let upcomingIndexPointer
+let cardTimerID
+let countDownTimerID
+
+const qS = e => document.querySelector(e)
+
+const main = () => {
+  fetchApod()
+  fetchUpcoming()
+  // advanceCardDelayed()
+  countDownTimerID = setInterval(startCountDownTimer, 1000)
+  cardTimerID = setInterval(displayNextMission, 10000)
 }
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    })
+
+// Since % doesn't handle negative numbers as expected...
+const mod = (n, m) => {
+  return ((n % m) + m) % m
+}
+
+const isDefinedAndAssigned = data => {
+  if (typeof data !== 'undefined') {
+    if (data != null) {
+      return true
+    }
+  }
+  return false
+}
+
+const startCountDownTimer = () => {
+  console.log('Started startCountDownTimer()')
+  if (!isMissionDataLoaded()) {
+    console.log('Mission data not available')
+    if (isDefinedAndAssigned(countDownTimerID)) {
+      clearInterval(countDownTimerID)
+    }
+    return
+  }
+  const deadline = upcomingJSON[upcomingIndexPointer].launch_date_unix * 1000
+  console.log('Deadline: ' + deadline)
+  if (typeof deadline === 'undefined' || deadline == null) {
+    return
+  }
+  const now = new Date().getTime()
+  const t = deadline - now
+  console.log('Time left: ' + t)
+  const days = Math.floor(t / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((t % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((t % (1000 * 60 * 60)) / (1000 * 60))
+  const seconds = Math.floor((t % (1000 * 60)) / 1000)
+  qS('.launch-timer').textContent =
+    days +
+    ' day' +
+    PluralS(days) +
+    ', ' +
+    hours +
+    ' hour' +
+    PluralS(hours) +
+    ', ' +
+    minutes +
+    ' minute' +
+    PluralS(minutes) +
+    ', ' +
+    seconds +
+    ' second' +
+    PluralS(seconds)
+  // qS('.days').textContent = days
+  // qS('.hours').textContent = hours
+  // qS('.minutes').textContent = minutes
+  // qS('.seconds').textContent = seconds
+  if (t < 0) {
+    clearInterval(countDownTimerID)
+    qS('.launch-timer').textContent = 'Launched!'
+    // qS('.days').textContent = '0'
+    // qS('.hours').textContent = '0'
+    // qS('.minutes').textContent = '0'
+    // qS('.seconds').textContent = '0'
+  }
+}
+
+// Given number returns 's' if number is 0 or >1; to append to words to make them plural
+// If number == 1 returns ''
+const PluralS = number => {
+  return number === 1 ? '' : 's'
+}
+
+const advanceCardDelayed = () => {
+  if (typeof cardTimerID === 'undefined' || cardTimerID == null) {
+    cardTimerID = setTimeout(displayNextMissionCycling, 10000)
   } else {
-    obj[key] = value
-  }
-  return obj
-}
-function _classCallCheck(instance, Constructor) {
-  if (!(instance instanceof Constructor)) {
-    throw new TypeError("Cannot call a class as a function")
+    clearTimeout(cardTimerID)
   }
 }
-function _defineProperties(target, props) {
-  for (var i = 0; i < props.length; i++) {
-    var descriptor = props[i]
-    descriptor.enumerable = descriptor.enumerable || false
-    descriptor.configurable = true
-    if ("value" in descriptor) descriptor.writable = true
-    Object.defineProperty(target, descriptor.key, descriptor)
+
+const stopCountDownTimer = () => {
+  if (typeof countDownTimerID !== 'undefined') {
+    if (countDownTimerID != null) {
+      clearTimeout(countDownTimerID)
+    }
   }
 }
-function _createClass(Constructor, protoProps, staticProps) {
-  if (protoProps) _defineProperties(Constructor.prototype, protoProps)
-  if (staticProps) _defineProperties(Constructor, staticProps)
-  return Constructor
+
+const displayNextMissionCycling = () => {
+  displayNextMission()
+  cardTimerID = null
+  advanceCardDelayed()
 }
-var API_URL = "https://sdg-astro-api.herokuapp.com/api/"
-var Launch = (function() {
-  function Launch(item) {
-    var _this = this
-    _classCallCheck(this, Launch)
-    this.data = _objectSpread({}, item)
-    this.ICONS = {
-      SHUTTLE: function SHUTTLE() {
-        return _this.createIcon("space-shuttle")
-      },
-      DESCRIPTION: function DESCRIPTION() {
-        return _this.createIcon("info-circle")
-      },
-      LOCATION: function LOCATION() {
-        return _this.createIcon("map-marked-alt")
-      },
-      COUNTDOWN: function COUNTDOWN() {
-        return _this.createIcon("clock")
-      }
+
+// Fetch the data for the Astro-Photo Of the Day by API
+const fetchApod = async () => {
+  const resp = await fetch(apodApiURL)
+  if (resp.status != 200) {
+    console.log('An error occurred fetching data from ' + apodApiURL)
+    return
+  }
+  const apod = await resp.json()
+  // qS('.aotdContainer').style.backgroundImage = 'url("' + apod.url + '")'
+  // qS('.aotd').src = apod.url
+  qS('.daily-picture').style.backgroundImage = 'url("' + apod.url + '")'
+  qS('.copyright').textContent =
+    'copyright: ' + apod.copyright + ' | title: ' + apod.title
+}
+
+// Fetch the upcoming SpaceX missions by API
+const fetchUpcoming = async () => {
+  const resp = await fetch(upcomingApiURL)
+  if (resp.status != 200) {
+    console.log('An error occurred fetching data from ' + upcomingApiURL)
+    return
+  }
+  upcomingJSON = await resp.json()
+  removePastMissions()
+  upcomingJSON.sort(
+    (a, b) => parseInt(a.launch_date_unix) - parseInt(b.launch_date_unix)
+  )
+  upcomingIndexPointer = 0
+  populateMissionData()
+}
+
+// Remove past missions from global array
+const removePastMissions = () => {
+  const now = new Date() // get now in UNIX epoch unit
+  // console.log('Now: ' + parseInt(now.getTime() / 1000))
+  for (let i = 0; i < upcomingJSON.length; i++) {
+    // const msg = 'Mission "' + upcomingJSON[i].mission_name + ' [' + i + ']" (' + upcomingJSON[i].launch_date_unix + ')'
+    if (
+      parseInt(upcomingJSON[i].launch_date_unix) <
+      parseInt(now.getTime() / 1000)
+    ) {
+      // console.log(msg + ' <- removed')
+      upcomingJSON.splice(i, 1)
+    } else {
+      // console.log(msg)
     }
   }
-  _createClass(Launch, [
-    {
-      key: "createIcon",
-      value: function createIcon(icon) {
-        var _icon = document.createElement("i")
-        _icon.classList.add("fas")
-        _icon.classList.add("fa-".concat(icon))
-        return _icon
-      }
-    },
-    {
-      key: "createHeader",
-      value: function createHeader() {
-        var _missionName = document.createElement("h3")
-        _missionName.appendChild(this.ICONS.SHUTTLE())
-        _missionName.appendChild(
-          document.createTextNode(this.data.mission_name)
-        )
-        return _missionName
-      }
-    },
-    {
-      key: "createDescription",
-      value: function createDescription() {
-        var _missionMain = document.createElement("main")
-        _missionMain.appendChild(this.ICONS.DESCRIPTION())
-        if (this.data.details) {
-          _missionMain.appendChild(document.createTextNode(this.data.details))
-        } else {
-          _missionMain.appendChild(
-            document.createTextNode("No description available yet.")
-          )
-        }
-        return _missionMain
-      }
-    },
-    {
-      key: "createLocation",
-      value: function createLocation() {
-        var _missionLocation = document.createElement("section")
-        _missionLocation.classList.add("location")
-        _missionLocation.appendChild(this.ICONS.LOCATION())
-        _missionLocation.appendChild(
-          document.createTextNode(this.data.launch_site.site_name_long)
-        )
-        return _missionLocation
-      }
-    },
-    {
-      key: "createCountDown",
-      value: function createCountDown() {
-        var _countdown = document.createElement("section")
-        _countdown.classList.add("countdown")
-        _countdown.appendChild(this.ICONS.COUNTDOWN())
-        var now = new Date()
-        var launchDate = new Date(this.data.launch_date_utc)
-        var dif = launchDate.getTime() - now.getTime()
-        var secondsFromT1ToT2 = dif / 1e3
-        var totalSeconds = Math.abs(secondsFromT1ToT2)
-        if (secondsFromT1ToT2 < 0) {
-          _countdown.appendChild(document.createTextNode("Launched!"))
-        } else {
-          var time = {
-            days: 0,
-            hours: 0,
-            minutes: 0,
-            seconds: 0
-          }
-          time.days = Math.floor(totalSeconds / (60 * 60 * 24))
-          totalSeconds = totalSeconds - time.days * 24 * 60 * 60
-          time.hours = Math.floor(totalSeconds / (60 * 60))
-          totalSeconds = totalSeconds - time.hours * 60 * 60
-          time.minutes = Math.floor(totalSeconds / 60)
-          totalSeconds = totalSeconds - time.minutes * 60
-          time.seconds = Math.floor(totalSeconds)
-          _countdown.appendChild(
-            document.createTextNode(
-              ""
-                .concat(time.days, " days, ")
-                .concat(time.hours, " hours, ")
-                .concat(time.minutes, " mins, ")
-                .concat(time.seconds, " seconds")
-            )
-          )
-        }
-        return _countdown
-      }
-    },
-    {
-      key: "renderCard",
-      value: function renderCard() {
-        var _parent = document.createElement("div")
-        _parent.classList.add("card-parent")
-        _parent.appendChild(this.createHeader())
-        _parent.appendChild(this.createDescription())
-        _parent.appendChild(this.createCountDown())
-        _parent.appendChild(this.createLocation())
-        return _parent
-      }
-    }
-  ])
-  return Launch
-})()
-var Page = (function() {
-  function Page() {
-    _classCallCheck(this, Page)
-    this.state = {
-      launches: {
-        upcoming: [],
-        currentIndex: 0,
-        countdown: null
-      },
-      pictureOfTheDay: {
-        url: "",
-        title: "loading...",
-        copyright: "loading..."
-      }
-    }
+}
+
+// Display next mission in array on card
+const displayNextMission = () => {
+  stopCountDownTimer()
+  qS('.launch-timer').textContent = ''
+  // Advance the pointer to the currently displayed mission by one (with wrap-around to 0 at last array element)
+  upcomingIndexPointer = (upcomingIndexPointer + 1) % upcomingJSON.length
+  // Show the new mission data on the card
+  populateMissionData()
+  // advanceCardDelayed()
+  // startCountDownTimer()
+  countDownTimerID = setInterval(startCountDownTimer, 1000)
+}
+
+// Display previous mission in array on card
+const displayPrevMission = () => {
+  stopCountDownTimer()
+  qS('.launch-timer').textContent = ''
+  // Move the pointer to the currently displayed mission back by one (with wrap-around at last array element to 0)
+  upcomingIndexPointer = mod(upcomingIndexPointer - 1, upcomingJSON.length)
+  // Show the new mission data on the card
+  populateMissionData()
+  // advanceCardDelayed()
+  countDownTimerID = setInterval(startCountDownTimer, 1000)
+}
+
+const isMissionDataLoaded = () => {
+  return typeof upcomingIndexPointer !== 'undefined'
+}
+
+// Display mission with index number saved in upcomingIndexPointer on card
+const populateMissionData = () => {
+  if (!isMissionDataLoaded()) {
+    console.log('Mission data not available')
+    return
   }
-  _createClass(Page, [
-    {
-      key: "pageWillLoad",
-      value: function pageWillLoad() {
-        this.loadImageOfTheDay()
-        this.loadUpcomingLaunches()
-      }
-    },
-    {
-      key: "loadUpcomingLaunches",
-      value: function loadUpcomingLaunches() {
-        var _this2 = this
-        fetch("".concat(API_URL, "spacex/launches/upcoming"))
-          .then(function(resp) {
-            return resp.json()
-          })
-          .then(function(json) {
-            _this2.updateUpcomingLaunches(json)
-            _this2.renderPage()
-          })
-      }
-    },
-    {
-      key: "updateUpcomingLaunches",
-      value: function updateUpcomingLaunches(json) {
-        this.state.launches.upcoming = json.map(function(l) {
-          return new Launch(l)
-        })
-      }
-    },
-    {
-      key: "loadImageOfTheDay",
-      value: function loadImageOfTheDay() {
-        var _this3 = this
-        fetch("".concat(API_URL, "Nasa/apod"))
-          .then(function(resp) {
-            return resp.json()
-          })
-          .then(function(json) {
-            console.log(json)
-            _this3.updatePictureOfTheDay(json)
-            _this3.renderPage()
-          })
-      }
-    },
-    {
-      key: "updatePictureOfTheDay",
-      value: function updatePictureOfTheDay(json) {
-        this.state.pictureOfTheDay.title = json.title
-        this.state.pictureOfTheDay.copyright = json.copyright
-        this.state.pictureOfTheDay.url = json.url
-      }
-    },
-    {
-      key: "renderPictureOfTheDay",
-      value: function renderPictureOfTheDay() {
-        var hero = document.querySelector(".hero-image")
-        document.querySelector(
-          ".image-title"
-        ).textContent = this.state.pictureOfTheDay.title
-        document.querySelector(".copyright").textContent =
-          this.state.pictureOfTheDay.copyright || "no copyright"
-        hero.style.backgroundImage = "url(".concat(
-          this.state.pictureOfTheDay.url,
-          ")"
-        )
-      }
-    },
-    {
-      key: "renderUpcomingLaunches",
-      value: function renderUpcomingLaunches() {
-        var _launch = this.state.launches.upcoming[
-          this.state.launches.currentIndex
-        ]
-        var _parent = document.querySelector(".launch-card")
-        _parent.textContent = ""
-        _parent.appendChild(_launch.renderCard())
-        this.startCountDown()
-      }
-    },
-    {
-      key: "startCountDown",
-      value: function startCountDown() {
-        var _this4 = this
-        clearInterval(this.state.launches.countdown)
-        this.state.launches.countdown = setTimeout(function() {
-          _this4.renderUpcomingLaunches(_this4.state.launches.currentIndex)
-        }, 1e3)
-      }
-    },
-    {
-      key: "goToNextLaunch",
-      value: function goToNextLaunch() {
-        this.state.launches.currentIndex++
-        if (
-          this.state.launches.currentIndex + 1 >
-          this.state.launches.upcoming.length
-        ) {
-          this.state.launches.currentIndex = 0
-        }
-        this.renderUpcomingLaunches()
-      }
-    },
-    {
-      key: "goToPrevLaunch",
-      value: function goToPrevLaunch() {
-        this.state.launches.currentIndex--
-        if (this.state.launches.currentIndex < 0) {
-          this.state.launches.currentIndex =
-            this.state.launches.upcoming.length - 1
-        }
-        this.renderUpcomingLaunches()
-      }
-    },
-    {
-      key: "renderPage",
-      value: function renderPage() {
-        this.renderPictureOfTheDay()
-        this.renderUpcomingLaunches()
-      }
-    }
-  ])
-  return Page
-})()
-var page = new Page()
-document.addEventListener("DOMContentLoaded", function() {
-  return page.pageWillLoad()
-})
-document.querySelector(".left.arrow").addEventListener("click", function() {
-  return page.goToPrevLaunch()
-})
-document.querySelector(".right.arrow").addEventListener("click", function() {
-  return page.goToNextLaunch()
-})
+
+  const missionName =
+    upcomingJSON[upcomingIndexPointer].mission_name +
+    ' (' +
+    (upcomingIndexPointer + 1) +
+    ' of ' +
+    upcomingJSON.length +
+    ')'
+  const missionDesc = upcomingJSON[upcomingIndexPointer].details
+  let missionCountdown = upcomingJSON[upcomingIndexPointer].launch_date_unix
+  const missionLaunch =
+    upcomingJSON[upcomingIndexPointer].launch_site.site_name_long
+
+  if (missionCountdown != null) {
+    const LaunchDate = new Date(missionCountdown * 1000)
+    missionCountdown = LaunchDate.toLocaleString()
+  }
+
+  qS('.title-of-launch').textContent =
+    missionName == null ? 'No mission name available yet' : missionName
+  qS('.launch-description').textContent =
+    missionDesc == null ? 'No description available yet' : missionDesc
+  qS('.laynch-timer').textContent =
+    missionCountdown == null ? 'No launch date yet' : missionCountdown
+  qS('.launch-location').textContent =
+    missionLaunch == null ? 'No launch site available yet' : missionLaunch
+}
+
+document.addEventListener('DOMContentLoaded', main)
+qS('.leftArrow').addEventListener('click', displayPrevMission)
+qS('.rightArrow').addEventListener('click', displayNextMission)

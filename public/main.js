@@ -8,111 +8,201 @@
 // TODO countdown timer to 0 for next astronomical event
 // TODO carousel should change every 10 seconds
 
-let rocketInfo
-const missionData = []
-let interval
-let interval2
-let i = 0
-const y = 0
-const x = 0
+const apodApiURL = 'https://sdg-astro-api.herokuapp.com/api/Nasa/apod'
+const upcomingApiURL =
+  'https://sdg-astro-api.herokuapp.com/api/SpaceX/launches/upcoming'
+// let upcomingJSON
+// let upcomingIndexPointer
+// let cardTimerID
+// let countDownTimerID
 
 const qs = e => document.querySelector(e)
 
-const apiUrl = 'https://sdg-astro-api.herokuapp.com/api/Nasa/apod'
-const upcomingApiUrl =
-  'https://sdg-astro-api.herokuapp.com/api/SpaceX/launches/upcoming'
+const main = () => {
+  fetchApod()
+  fetchUpcoming()
+  countDownTimerID = setInterval(startCountDownTimer, 1000)
+  cardTimerID = setInterval(displayNextMission, 10000)
+}
 
-const getHeroImage = async () => {
-  const response = await fetch(apiUrl)
-  const json = await response.json()
-  if (json.copyright === 'null') {
-    qs('.daily-picture').style.backgroundImage = `url(${json.hdUrl})`
-    qs('.copyright').textContent = 'copyright: ' + json.copyright
-    qs('.title').textContent = ' | title: ' + json.title
-  } else {
-    qs('.copyright').textContent = 'copyright: Not Available'
-    qs('.daily-picture').style.backgroundImage = `url(${json.hdUrl})`
-    qs('.title').textContent = ' | title: ' + json.title
+const mod = (n, m) => {
+  return ((n % m) + m) % m
+}
+
+const isDefinedAndAssigned = data => {
+  if (typeof data !== 'undefined') {
+    if (data != null) {
+      return true
+    }
   }
+  return false
 }
 
-const getUpcomingData = async () => {
-  const response = await fetch(upcomingApiUrl)
-  const json = await response.json()
-  console.log(json)
-  qs('.title-of-launch').textContent = json[0].mission_name
-  qs('.describe-launch').textContent = json[0].details
-  qs('.launch-location').textContent = json[0].launch_site.site_name_long
-  qs('.launch-timer').textContent = json[0].launch_date_unix
-}
-
-const advanceCard = () => {
-  interval2 = setTimeout(displayNextMissionCycling, 10000)
-}
-
-const displayNextMissionCycling = () => {
-  rightButton()
-  interval2 = null
-  advanceCard()
-}
-
-// const information = {
-//   misson_name: rocketInfo[i].mission_name,
-//   details: rocketInfo[i].details,
-//   launch_date_unix: rocketInfo[i].launch_date_unix,
-//   launch_site: rocketInfo[i].launch_site.site_name_long
-//   }
-//   missionData.push(information)
-//   i++;
-
-const beginCountDown = () => {
-  const unixConversion = rocketInfo[i].launch_date_unix * 1000
+const startCountDownTimer = () => {
+  console.log('Started startCountDownTimer()')
+  if (!isMissionDataLoaded()) {
+    console.log('Mission data not available')
+    if (isDefinedAndAssigned(countDownTimerID)) {
+      clearInterval(countDownTimerID)
+    }
+    return
+  }
+  const deadline = upcomingJSON[upcomingIndexPointer].launch_date_unix * 1000
+  console.log('Deadline: ' + deadline)
+  if (typeof deadline === 'undefined' || deadline == null) {
+    return
+  }
   const now = new Date().getTime()
-  const t = unixConversion - now
+  const t = deadline - now
+  console.log('Time left: ' + t)
   const days = Math.floor(t / (1000 * 60 * 60 * 24))
   const hours = Math.floor((t % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
   const minutes = Math.floor((t % (1000 * 60 * 60)) / (1000 * 60))
   const seconds = Math.floor((t % (1000 * 60)) / 1000)
-  if (days <= 0 && hours <= 0 && minutes <= 0 && seconds <= 0) {
-    qs('.days').textContent = 'Launched.'
-    qs('.group').classList.add('hide')
+  qs('.launch-timer').textContent =
+    days +
+    ' day' +
+    PluralS(days) +
+    ', ' +
+    hours +
+    ' hour' +
+    PluralS(hours) +
+    ', ' +
+    minutes +
+    ' minute' +
+    PluralS(minutes) +
+    ', ' +
+    seconds +
+    ' second' +
+    PluralS(seconds)
+  if (t < 0) {
+    clearInterval(countDownTimerID)
+    qs('.launch-timer').textContent = 'Launched!'
+  }
+}
+
+const PluralS = number => {
+  return number === 1 ? '' : 's'
+}
+
+const advanceCardDelayed = () => {
+  if (typeof cardTimerID === 'undefined' || cardTimerID == null) {
+    cardTimerID = setTimeout(displayNextMissionCycling, 10000)
   } else {
-    qs('.group').classList.remove('hide')
-    qs('.days').textContent = days
-    qs('.hours').textContent = hours
-    qs('.minutes').textContent = minutes
-    qs('.seconds').textContent = seconds
+    clearTimeout(cardTimerID)
   }
 }
 
-const leftButton = () => {
-  if (i === 0) {
-    i = rocketInfo.length - 1
-    displayRocketInfo()
+const stopCountDownTimer = () => {
+  if (typeof countDownTimerID !== 'undefined') {
+    if (countDownTimerID != null) {
+      clearTimeout(countDownTimerID)
+    }
   }
 }
 
-const rightButton = () => {
-  i = (i + 1) % rocketInfo.length
-  displayRocketInfo()
+const displayNextMissionCycling = () => {
+  displayNextMission()
+  cardTimerID = null
+  advanceCardDelayed()
 }
 
-const displayRocketInfo = () => {
-  qs('.title').textContent = rocketInfo[i].mission_name
-
-  if (rocketInfo[i].details == null) {
-    qs('.details').textContent = 'No description available yet.'
-  } else {
-    qs('.details').textContent = rocketInfo[i].details
+const fetchApod = async () => {
+  const resp = await fetch(apodApiURL)
+  if (resp.status != 200) {
+    console.log('An error occurred fetching data from ' + apodApiURL)
+    return
   }
-  qs('.map').textContent = rocketInfo[i].launch_site.site_name_long
+  const apod = await resp.json()
+  qs('.daily-picture').style.backgroundImage = 'url("' + apod.url + '")'
+  qs('.copyright').textContent =
+    'copyright: ' + apod.copyright + ' | title: ' + apod.title
 }
 
-const start = () => {
-  getHeroImage()
-  getUpcomingData()
+const fetchUpcoming = async () => {
+  const resp = await fetch(upcomingApiURL)
+  if (resp.status != 200) {
+    return
+  }
+  upcomingJSON = await resp.json()
+  removePastMissions()
+  upcomingJSON.sort(
+    (a, b) => parseInt(a.launch_date_unix) - parseInt(b.launch_date_unix)
+  )
+  upcomingIndexPointer = 0
+  populateMissionData()
 }
 
-document.addEventListener('DOMContentLoaded', start)
-qs('.leftArrow').addEventListener('click', leftButton)
-qs('.rightArrow').addEventListener('click', rightButton)
+// Remove past missions from global array
+const removePastMissions = () => {
+  const now = new Date() // get now in UNIX epoch unit
+  for (let i = 0; i < upcomingJSON.length; i++) {
+    if (
+      parseInt(upcomingJSON[i].launch_date_unix) <
+      parseInt(now.getTime() / 1000)
+    ) {
+      upcomingJSON.splice(i, 1)
+    } else {
+    }
+  }
+}
+
+// Display next mission in array on card
+const displayNextMission = () => {
+  stopCountDownTimer()
+  qs('.launch-timer').textContent = ''
+  upcomingIndexPointer = (upcomingIndexPointer + 1) % upcomingJSON.length
+  populateMissionData()
+  countDownTimerID = setInterval(startCountDownTimer, 1000)
+}
+
+// Display previous mission in array on card
+const displayPrevMission = () => {
+  stopCountDownTimer()
+  qs('.launch-timer').textContent = ''
+  upcomingIndexPointer = mod(upcomingIndexPointer - 1, upcomingJSON.length)
+  populateMissionData()
+  countDownTimerID = setInterval(startCountDownTimer, 1000)
+}
+
+const isMissionDataLoaded = () => {
+  return typeof upcomingIndexPointer !== 'undefined'
+}
+
+// Display mission with index number saved in upcomingIndexPointer on card
+const populateMissionData = () => {
+  if (!isMissionDataLoaded()) {
+    console.log('Mission data not available')
+    return
+  }
+
+  const missionName =
+    upcomingJSON[upcomingIndexPointer].mission_name +
+    ' (' +
+    (upcomingIndexPointer + 1) +
+    ' of ' +
+    upcomingJSON.length +
+    ')'
+  const missionDesc = upcomingJSON[upcomingIndexPointer].details
+  let missionCountdown = upcomingJSON[upcomingIndexPointer].launch_date_unix
+  const missionLaunch =
+    upcomingJSON[upcomingIndexPointer].launch_site.site_name_long
+
+  if (missionCountdown != null) {
+    const LaunchDate = new Date(missionCountdown * 1000)
+    missionCountdown = LaunchDate.toLocaleString()
+  }
+
+  qs('.title-of-launch').textContent =
+    missionName == null ? 'No mission name available yet' : missionName
+  qs('.launch-description').textContent =
+    missionDesc == null ? 'No description available yet' : missionDesc
+  qs('.laynch-timer').textContent =
+    missionCountdown == null ? 'No launch date yet' : missionCountdown
+  qs('.launch-location').textContent =
+    missionLaunch == null ? 'No launch site available yet' : missionLaunch
+}
+
+document.addEventListener('DOMContentLoaded', main)
+qs('.leftArrow').addEventListener('click', displayPrevMission)
+qs('.rightArrow').addEventListener('click', displayNextMission)
