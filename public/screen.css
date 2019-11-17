@@ -20,6 +20,12 @@ nav {
   width: 100%;
   height: 100%;
 }
+
+.side-menu:hover a {
+  background-color: rgb(255, 193, 7);
+  color: black;
+}
+
 .primary-text-color {
   color: black;
 }
@@ -46,6 +52,7 @@ nav {
 .sdg-title a {
   text-decoration: none;
 }
+
 .light-text-color {
   color: rgb(254, 254, 254);
 }
@@ -53,6 +60,7 @@ nav {
 nav.side-menu a {
   padding: 1.25rem;
 }
+
 .side-menu {
   display: flex;
   justify-content: flex-end;
@@ -72,6 +80,7 @@ nav.side-menu a {
   font-size: 2rem;
   color: white;
 }
+
 .credit {
   width: 100%;
   text-align: center;
@@ -92,6 +101,7 @@ nav.side-menu a {
   margin: 0;
   padding: 1rem 0 1rem 0.5rem;
   background-color: rgb(254, 192, 47);
+  text-align: center;
 }
 
 .launches {
@@ -104,8 +114,8 @@ nav.side-menu a {
 .launch-info {
   margin: 1rem 3rem;
   padding-bottom: 3rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
   border-radius: 0.5rem;
   flex-basis: 80%;
   background-color: rgb(237, 237, 237);
@@ -148,4 +158,31 @@ footer {
   margin: 8rem 0rem 8rem 0rem;
   background-color: rgb(254, 192, 47);
   font-size: 2rem;
+}
+
+.launch-title {
+  text-align: center;
+  padding: 1rem;
+}
+
+@media only screen and (min-width: 500px) {
+  .mission-statement section {
+    width: 75%;
+  }
+
+  .arrow {
+    width: 10rem;
+    margin: 4rem 0rem 4rem 0rem;
+  }
+}
+
+@media only screen and (min-width: 1000px) {
+  .mission-statement section {
+    width: 50%;
+  }
+
+  .arrow {
+    width: 10rem;
+    margin: 4rem 0rem 4rem 0rem;
+  }
 }
