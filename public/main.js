@@ -17,9 +17,15 @@ const upcomingApiUrl =
 const getHeroImage = async () => {
   const response = await fetch(apiUrl)
   const json = await response.json()
-  qs('.daily-picture').style.backgroundImage = `url(${json.hdUrl})`
-  qs('.copyright').textContent =
-    'copyright: ' + json.copyright + ' | title: ' + json.title
+  if (json.copyright === 'null') {
+    qs('.daily-picture').style.backgroundImage = `url(${json.hdUrl})`
+    qs('.copyright').textContent = 'copyright: ' + json.copyright
+    qs('.title').textContent = ' | title: ' + json.title
+  } else {
+    qs('.copyright').textContent = 'copyright: Not Available'
+    qs('.daily-picture').style.backgroundImage = `url(${json.hdUrl})`
+    qs('.title').textContent = ' | title: ' + json.title
+  }
 }
 
 const getUpcomingData = async () => {
@@ -27,6 +33,9 @@ const getUpcomingData = async () => {
   const json = await response.json()
   console.log(json)
   qs('.title-of-launch').textContent = json[0].mission_name
+  qs('.describe-launch').textContent = json[0].details
+  qs('.launch-location').textContent = json[0].launch_site.site_name_long
+  qs('.launch-timer').textContent = json[0].launch_date_unix
 }
 // index of upcoming launch will change so that needs to be a function that counts towards the full index of launches
 
